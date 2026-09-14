@@ -90,6 +90,8 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--accent) 14%, var(--hud-surface-solid));
   border: 1px solid var(--hud-border);
   box-shadow: 0 8px 22px rgba(2, 6, 12, 0.5);
+  /* 基础位移：即使动画被停掉（渲染安全模式 / prefers-reduced-motion）也能居中 */
+  transform: translate3d(-50%, 0, 0);
   animation: float-up 1s var(--ease-out) forwards;
   will-change: transform, opacity;
 }

@@ -4,6 +4,7 @@
  * 所有强度都通过 CSS 变量（由 App.vue 逐帧插值写入）驱动，因此阶段切换是连续渐变而不是跳变。
  */
 import { computed, type CSSProperties } from 'vue'
+import { device } from '../../game/device'
 import { gameStore } from '../../game/store'
 import { clamp01, hashRandom } from '../../game/math'
 
@@ -16,7 +17,14 @@ interface CloudLayer {
 
 const layers = computed<CloudLayer[]>(() => {
   const stage = store.stage.value
-  const count = Math.max(0, Math.round(stage.effects.cloudLayers))
+  const raw = Math.max(0, Math.round(stage.effects.cloudLayers))
+  // 图层预算：云是这个页面里面积最大的一批合成层。
+  // 极简档封顶 4 层，其他触屏设备封顶 5 层（手机上"内容变黑"多半是图层/显存吃紧）。
+  const count = store.effectsMinimal.value
+    ? Math.min(raw, 4)
+    : device.isTouch
+      ? Math.min(raw, 5)
+      : raw
   const baseOpacity = clamp01(stage.effects.cloud * 0.9)
 
   return Array.from({ length: count }, (_, i) => {

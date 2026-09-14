@@ -27,7 +27,7 @@ const fxLabel = computed(() => {
 const fxTitle = computed(() => {
   if (props.fxAuto) {
     return device.isTouch
-      ? '移动端已自动减弱（粒子更少、无震动、无频闪、闪光限频）；点击可关闭自动并查看完整特效'
+      ? '移动端已自动进入极简特效：不做全屏闪光、无频闪、无震动、粒子大幅减少；点击可关闭自动并查看完整特效'
       : '当前跟随系统偏好自动减弱；点击可关闭'
   }
   return '降低粒子数量、关闭震动与频闪、限制闪光频率'
@@ -79,7 +79,7 @@ function onVolume(event: Event): void {
       {{ fxLabel }}
     </button>
 
-    <button class="ghost-button" type="button" aria-label="重新开始" @click="store.reset()">
+    <button class="ghost-button controls__reset" type="button" aria-label="重新开始" @click="store.reset()">
       {{ narrow ? '重来' : '重新开始' }}
     </button>
     <button class="ghost-button" type="button" aria-label="关于与免责声明" @click="$emit('open-about')">
@@ -129,9 +129,13 @@ function onVolume(event: Event): void {
   .controls__volume {
     display: none;
   }
+  /* 移动端少一个按钮：重新开始挪进「说明」面板，控制栏只留 3 个 */
+  .controls__reset {
+    display: none !important;
+  }
   .controls :deep(.ghost-button) {
     min-height: 44px;
-    padding: 10px 12px;
+    padding: 10px 14px;
     font-size: 13px;
     white-space: nowrap;
   }

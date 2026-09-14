@@ -13,6 +13,7 @@ export const DEFAULT_PREFS: Prefs = {
   reduceFx: false,
   // 移动端默认减弱特效（缓解闪烁、也省电）；用户手动改过之后就不再自动接管
   mobileAutoReduce: true,
+  safeRender: false,
   hintSeen: false,
 }
 
@@ -74,6 +75,7 @@ export function loadPrefs(): Prefs {
     easyMode: asBool(raw.easyMode, DEFAULT_PREFS.easyMode),
     reduceFx: asBool(raw.reduceFx, DEFAULT_PREFS.reduceFx),
     mobileAutoReduce: asBool(raw.mobileAutoReduce, DEFAULT_PREFS.mobileAutoReduce),
+    safeRender: asBool(raw.safeRender, DEFAULT_PREFS.safeRender),
     hintSeen: asBool(raw.hintSeen, DEFAULT_PREFS.hintSeen),
   }
 }

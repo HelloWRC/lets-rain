@@ -1,12 +1,16 @@
 <script setup lang="ts">
-/** 事件播报：阶段升级、连击里程碑、手滑吐槽。内容由 store 统一产生。 */
+/** 事件播报：阶段升级、连击里程碑、手滑吐槽。内容由 store 统一产生。
+ *  极简档（移动端自动）直接不渲染：少一类"不断弹入弹出"的界面元素，
+ *  阶段变化仍然由横幅与阶段轨道表达。 */
+import { computed } from 'vue'
 import { gameStore } from '../game/store'
 
 const store = gameStore
+const visible = computed(() => !store.effectsMinimal.value)
 </script>
 
 <template>
-  <ul class="feed" aria-live="polite" aria-label="求雨动态">
+  <ul v-if="visible" class="feed" aria-live="polite" aria-label="求雨动态">
     <li v-for="item in store.feed.value" :key="item.id" class="feed__item" :class="`is-${item.kind}`">
       {{ item.text }}
     </li>

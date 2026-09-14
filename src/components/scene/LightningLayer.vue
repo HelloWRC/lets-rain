@@ -25,18 +25,22 @@ function strike(): void {
   const h = window.innerHeight
   const x = w * (0.12 + Math.random() * 0.76)
   const y = h * (0.52 + Math.random() * 0.34)
-  const intensity = 0.35 + Math.random() * 0.65
+  let intensity = 0.35 + Math.random() * 0.65
+  // 极简档：闪电只作为"远处有雷"的暗示，亮度再砍一半
+  if (runtime.minimal) intensity *= 0.5
   // 越靠画面边缘的雷越"远"：闪得越弱、雷声到得越晚
   const distance = clamp01(Math.abs(x / w - 0.5) * 1.9)
 
-  pulseFlash(0.16 + 0.5 * intensity)
+  pulseFlash(0.16 + 0.5 * intensity) // 极简档内部直接忽略，不做全屏闪光
   pulseShake(runtime.effects.shake * (0.35 + intensity) * 0.55)
   store.events.emit('lightning', { x, y, intensity, distance })
 }
 
 useGameTick((dtMs) => {
   const dt = Math.min(dtMs, 100) / 1000
-  const rate = runtime.effects.lightningPerSecond * (runtime.reduced ? 0.45 : 1)
+  // 频率也随档位下降：极简档只有原来的 22%
+  const rateScale = runtime.minimal ? 0.22 : runtime.reduced ? 0.45 : 1
+  const rate = runtime.effects.lightningPerSecond * rateScale
   if (rate <= 0) {
     accumulator = 0
     return

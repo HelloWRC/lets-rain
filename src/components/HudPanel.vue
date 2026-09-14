@@ -73,7 +73,7 @@ useGameTick((dtMs) => {
     <div class="hud__strip">
       <span class="hud__pill">连击 <strong>{{ comboText }}</strong></span>
       <span class="hud__pill">诚心 <strong>{{ prayersText }}</strong></span>
-      <span class="hud__pill">手滑 <strong>{{ store.missCount.value }}</strong></span>
+      <span class="hud__pill hud__pill--minor">手滑 <strong>{{ store.missCount.value }}</strong></span>
       <button
         class="hud__pill hud__more"
         type="button"

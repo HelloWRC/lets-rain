@@ -4,6 +4,7 @@
  * 阶段越高线条越多越快；行进的时长还叠加上阶段内进度（--intensity），越接近满阶段越急。
  */
 import { computed, type CSSProperties } from 'vue'
+import { device } from '../../game/device'
 import { gameStore } from '../../game/store'
 import { clamp01, hashRandom } from '../../game/math'
 
@@ -14,10 +15,16 @@ interface Streak {
   style: CSSProperties
 }
 
+/** 极简档（移动端自动）直接不画风向流线：快速横穿的亮线在手机上很像闪烁 */
+const visible = computed(() => !store.effectsMinimal.value)
+
 const streaks = computed<Streak[]>(() => {
+  if (!visible.value) return []
   const stage = store.stage.value
   const profile = stage.effects
-  const count = Math.round(clamp01(profile.streaks) * 26)
+  // 触屏上把流线数量压到 8 条：几十个被提升的动画元素在手机上代价很高
+  const cap = device.isTouch ? 8 : 26
+  const count = Math.round(clamp01(profile.streaks) * cap)
   const baseDuration = 2.4 - clamp01(profile.streaks) * 1.5
 
   return Array.from({ length: count }, (_, i) => {
@@ -40,7 +47,7 @@ const streaks = computed<Streak[]>(() => {
 </script>
 
 <template>
-  <div class="streaks" aria-hidden="true">
+  <div v-if="visible" class="streaks" aria-hidden="true">
     <span v-for="streak in streaks" :key="streak.id" class="streak" :style="streak.style" />
   </div>
 </template>

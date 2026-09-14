@@ -28,6 +28,12 @@ function clearLocal(): void {
   store.best.bestCombo = 0
   store.best.completions = 0
 }
+
+/** 移动端把「重新开始」收到这里，控制栏少一个按钮 */
+function restart(): void {
+  store.reset()
+  emit('close')
+}
 </script>
 
 <template>
@@ -76,11 +82,23 @@ function clearLocal(): void {
         <p class="note-body">
           后期阶段包含闪烁与屏幕震动。主闪频率被限制在 3Hz 以下；如果感到不适，
           请打开「减弱特效」或把系统设置为"减少动态效果"，两者都会关闭震动与频闪、并大幅减少粒子。
+          在手机上默认就处于「极简」档：不做全屏闪光、无频闪、无震动。
+        </p>
+      </section>
+
+      <section class="note-section">
+        <h3 class="note-section__title">渲染兼容</h3>
+        <p class="note-body">
+          触屏设备会自动关闭毛玻璃、混合模式、大面积模糊与强制图层提升，以减少 GPU 合成压力
+          （移动端"内容变黑、甚至整页变黑"通常就是合成器压力或 WebView 兼容问题导致的）。
+          如果仍然出现，可在地址后加 <code>?safe=1</code> 打开「渲染安全模式」——连 Canvas、渐变、
+          模糊与阴影都不渲染，只保留纯色背景与界面；用 <code>?safe=0</code> 关闭。
         </p>
       </section>
 
       <footer class="note-modal__foot">
         <button class="note-button" type="button" @click="clearLocal()">清除本地记录</button>
+        <button class="note-button" type="button" @click="restart()">重新开始</button>
         <button class="note-button note-button--primary" type="button" @click="emit('close')">
           继续求雨
         </button>

@@ -167,10 +167,184 @@ button {
 }
 
 /* ==========================================================================
-   减弱特效模式（.is-reduced-fx）
-   由 store.effectsReduced 驱动：用户手动开关 / 系统 prefers-reduced-motion /
-   移动端自动减弱，三者任一命中即生效。
-   目标是把"闪烁"和"大幅旋转位移"压下去，同时保留天气本身的变化（云、雨、配色）。
+   移动端渲染安全模式（.is-mobile，触屏或窄屏时由 JS 加上）
+
+   背景：用户反馈移动端会出现"界面内容随即变黑、甚至整页变黑"的渲染异常。
+   这不是光效强弱的问题，而是 GPU 合成压力 / 合成器缺陷。下列几类是移动端
+   （尤其厂商 WebView、微信内置浏览器）最常见的触发源：
+
+     1. backdrop-filter（毛玻璃）—— 部分 WebView 直接把它画成黑色矩形；
+     2. mix-blend-mode —— 需要读取背景，合成器压力大且兼容性差；
+     3. 大面积 filter: blur() —— 每层云都 7px 模糊，图层显存成倍增长；
+     4. 大量 will-change / 被强制提升的合成图层 —— 手机显存吃紧后合成器会丢内容，
+        表现就是"内容变黑 / 整页变黑"。
+
+   这些降级在触屏设备上**无条件生效**（与"特效档位"解耦）：
+   特效档位只决定动效与闪烁的强弱，渲染安全则始终保证。
+   桌面端不受影响（桌面 GPU 与合成器没有这类问题，保留原有观感）。
+   ========================================================================== */
+
+/* 1. 去掉全部毛玻璃 */
+.is-mobile .panel,
+.is-mobile .banner,
+.is-mobile .disclaimer-bar,
+.is-mobile .modal-backdrop,
+.is-mobile .note-modal,
+.is-mobile .hud__pill,
+.is-mobile .chip,
+.is-mobile .ghost-button,
+.is-mobile .feed__item {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 去掉毛玻璃后用略高的底色保证文字对比度不下降 */
+.is-mobile .panel,
+.is-mobile .banner {
+  background: color-mix(in srgb, var(--accent) 12%, #0d1826);
+}
+
+.is-mobile .disclaimer-bar {
+  background: #0b131e;
+}
+
+/* 2. 去掉混合模式 */
+.is-mobile .heat,
+.is-mobile .vortex,
+.is-mobile .strobe,
+.is-mobile .funnel {
+  mix-blend-mode: normal !important;
+}
+
+/* 3. 去掉大面积模糊（云的径向渐变本身就是软的，模糊是多余的） */
+.is-mobile .cloud-layer,
+.is-mobile .halo,
+.is-mobile .cloud-puffs,
+.is-mobile .haze,
+.is-mobile .dust-ring,
+.is-mobile .eye {
+  filter: none !important;
+}
+
+.is-mobile .sun-glow {
+  filter: blur(2px) !important;
+}
+
+.is-mobile .funnel {
+  filter: blur(4px) !important;
+}
+
+/* 4. 取消强制图层提升 */
+.is-mobile .world,
+.is-mobile .cloud-layer,
+.is-mobile .streak,
+.is-mobile .float,
+.is-mobile .pray-drifter,
+.is-mobile .particles,
+.is-mobile .flash {
+  will-change: auto !important;
+}
+
+/* 5. 削减图层数量与面积 */
+/* 云层翻涌的伪元素等于把每层云的绘制量翻倍 */
+.is-mobile .cloud-layer::after {
+  display: none !important;
+}
+
+/* 日芒是"遮罩 + 锥形渐变 + 旋转"的大图层，手机上收益低、代价高 */
+.is-mobile .sun-rays,
+.is-mobile .heat,
+.is-mobile .raindrops {
+  display: none !important;
+}
+
+/* 极简档下全屏闪光层直接不渲染（JS 侧也不再触发闪光） */
+.is-fx-minimal .flash {
+  display: none !important;
+}
+
+/* 极简档：极简化的动效（仅动效，不含上面的渲染安全项） */
+.is-fx-minimal .banner {
+  animation: banner-fade 2.4s linear both !important;
+}
+
+.is-fx-minimal .float {
+  animation-duration: 0.8s !important;
+}
+
+.is-fx-minimal .feed__item {
+  animation: none !important;
+}
+
+.is-fx-minimal .streak {
+  display: none !important;
+}
+
+.is-fx-minimal .sun-rays,
+.is-fx-minimal .halo,
+.is-fx-minimal .chip {
+  animation: none !important;
+}
+
+/* 极简档：界面也一起简化 —— 阶段轨道只留当前阶段名，数据条去掉次要指标 */
+.is-fx-minimal .track__node:not(.is-current) .track__name {
+  display: none !important;
+}
+
+.is-fx-minimal .track__note {
+  font-size: 11.5px !important;
+}
+
+.is-fx-minimal .hud__pill--minor {
+  display: none !important;
+}
+
+/* ==========================================================================
+   渲染安全模式（.is-safe-render，用 ?safe=1 打开）
+   最极端的兜底：连 Canvas、渐变、模糊、阴影都不要，只留纯色背景 + 按钮 + 面板。
+   如果移动端"内容变黑"在常规降级后仍然出现，用它可以继续玩，也能帮助定位问题
+   （安全模式下正常 → 属于合成/GPU 类问题；仍然异常 → 另有原因）。
+   ========================================================================== */
+.is-safe-render .particles,
+.is-safe-render .cloud-layer,
+.is-safe-render .sun-rays,
+.is-safe-render .sun-glow,
+.is-safe-render .heat,
+.is-safe-render .raindrops,
+.is-safe-render .streaks,
+.is-safe-render .vortex,
+.is-safe-render .aura,
+.is-safe-render .vignette,
+.is-safe-render .flash,
+.is-safe-render .ground,
+.is-safe-render .horizon {
+  display: none !important;
+}
+
+.is-safe-render .sky {
+  background: var(--sky-mid) !important;
+}
+
+.is-safe-render .sky::after {
+  opacity: 0 !important;
+}
+
+.is-safe-render *,
+.is-safe-render *::before,
+.is-safe-render *::after {
+  animation: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+/* 注意：这里不动 transform —— 不少元素靠它做居中（例如浮字的 translate3d(-50%,0,0)）。
+   动画停掉之后，靠动画提供的位移自然也就没了；JS 驱动的按钮飘移则仍然保留。 */
+
+/* ==========================================================================
+   动效减弱档（.is-reduced-fx）
+   由 store.effectsLevel 驱动：用户手动开关 / 系统 prefers-reduced-motion /
+   移动端自动极简，三者任一命中即生效（"极简"同时带 .is-reduced-fx 与 .is-fx-minimal）。
+   这里只压"动效"（脉冲、旋转、流线、频闪），渲染安全项见上面的 .is-mobile。
    用 !important 是因为组件样式是 scoped 的，优先级不可靠。
    ========================================================================== */
 .is-reduced-fx .strobe,
@@ -184,7 +358,6 @@ button {
 .is-reduced-fx .sun-glow,
 .is-reduced-fx .eye,
 .is-reduced-fx .ring,
-.is-reduced-fx .controls__hint,
 .is-reduced-fx .heat,
 .is-reduced-fx .raindrops,
 .is-reduced-fx .cloud-layer::after {

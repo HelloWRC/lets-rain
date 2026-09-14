@@ -2,25 +2,35 @@
 /**
  * 按钮周围的阶段特效层（全部由 CSS 变量驱动，随阶段平滑过渡）：
  * 晴天日芒 → 多云云团 → 阴天暗晕浮尘 → 雨水花环 → 暴雨电弧 → 强对流涡环与冰雹。
+ *
+ * 极简档（移动端自动）只保留一圈静止的光环：旋转、脉冲、电弧、冰雹弹跳全部不渲染，
+ * 这些正是手机上"一直在闪"的来源。
  */
+import { computed } from 'vue'
+import { gameStore } from '../game/store'
+
+const store = gameStore
+const minimal = computed(() => store.effectsMinimal.value)
 </script>
 
 <template>
   <div class="aura" aria-hidden="true">
-    <div class="layer sun-rays" />
-    <div class="layer sun-glow" />
-    <div class="layer cloud-puffs" />
-    <div class="layer haze" />
-    <div class="layer dust-ring" />
-    <div class="layer splash-ring" />
-    <div class="layer arcs">
-      <span class="arc arc-a" />
-      <span class="arc arc-b" />
-      <span class="arc arc-c" />
-    </div>
-    <div class="layer vortex-ring" />
-    <div class="layer vortex-ring reverse" />
-    <div class="layer hail-bounce" />
+    <template v-if="!minimal">
+      <div class="layer sun-rays" />
+      <div class="layer sun-glow" />
+      <div class="layer cloud-puffs" />
+      <div class="layer haze" />
+      <div class="layer dust-ring" />
+      <div class="layer splash-ring" />
+      <div class="layer arcs">
+        <span class="arc arc-a" />
+        <span class="arc arc-b" />
+        <span class="arc arc-c" />
+      </div>
+      <div class="layer vortex-ring" />
+      <div class="layer vortex-ring reverse" />
+      <div class="layer hail-bounce" />
+    </template>
     <div class="layer halo" />
   </div>
 </template>

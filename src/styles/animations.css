@@ -208,6 +208,22 @@
   }
 }
 
+/* 极简档用：只做缓慢淡入淡出，没有缩放位移 */
+@keyframes banner-fade {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  84% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes feed-in {
   from {
     transform: translate3d(18px, 0, 0);

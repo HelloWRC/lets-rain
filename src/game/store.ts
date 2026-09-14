@@ -27,6 +27,7 @@ import {
 import type {
   BestRecord,
   ClickOutcome,
+  EffectsLevel,
   FeedItem,
   FeedKind,
   GameEvents,
@@ -97,21 +98,51 @@ export function createGameStore(options: GameStoreOptions = {}) {
   const atFinalStage = computed(() => state.stageIndex === LAST_STAGE_INDEX)
 
   /**
-   * 特效是否进入"减弱"档：三个来源取或 ——
-   *  1. 用户手动打开「减弱特效」；
-   *  2. 系统偏好 prefers-reduced-motion；
-   *  3. 触屏设备（手机/平板）自动减弱，可在移动端手动关掉，之后就不再自动接管。
+   * 特效档位：三个来源决定 ——
+   *  1. 触屏设备：默认直接进入「极简」（缓解闪烁是第一优先，手机上尤其明显）；
+   *     用户在移动端手动打开「减弱特效」也给极简（他明确要更少特效）；
+   *     用户在移动端把自动关掉（mobileAutoReduce=false 且 reduceFx=false）才是完整特效。
+   *  2. 用户在桌面手动打开「减弱特效」，或系统偏好 prefers-reduced-motion → 「减弱」。
+   *  3. 其余 → 「完整」。
    * 注意这里用 isTouch 而不是 isMobile：桌面端把窗口拖窄不该被自动降级。
-   * 减弱后会：粒子大幅减少、关闭屏幕震动与频闪、闪光强度降低且限制频率、
-   * CSS 侧通过 .is-reduced-fx 停掉脉冲与快速旋转。
    */
-  const effectsReduced = computed(
-    () => prefs.reduceFx || device.prefersReducedMotion || (device.isTouch && prefs.mobileAutoReduce),
-  )
+  const effectsLevel = computed<EffectsLevel>(() => {
+    if (device.isTouch && (prefs.mobileAutoReduce || prefs.reduceFx)) return 'minimal'
+    if (prefs.reduceFx || device.prefersReducedMotion) return 'reduced'
+    return 'full'
+  })
 
-  /** 「减弱特效」当前是否由移动端自动接管（用于控制栏文案） */
+  /** 是否至少进入"减弱"档（兼容旧调用点） */
+  const effectsReduced = computed(() => effectsLevel.value !== 'full')
+
+  /** 是否处于「极简」档（移动端自动） */
+  const effectsMinimal = computed(() => effectsLevel.value === 'minimal')
+
+  /** 渲染安全模式（?safe=1）：只保留纯色背景 + 按钮 + 面板 */
+  const safeRender = computed(() => prefs.safeRender)
+
+  /**
+   * 处理 URL 上的 safe 开关：`?safe=1` 打开、`?safe=0` 关闭（会持久化）。
+   * 用途：移动端出现"内容/整页变黑"这类合成器异常时的兜底与排查手段。
+   */
+  function applySafeRenderFromUrl(search: string): void {
+    const match = /[?&]safe=(0|1)\b/.exec(search)
+    if (!match) return
+    const value = match[1] === '1'
+    if (prefs.safeRender === value) return
+    prefs.safeRender = value
+    if (value) {
+      // 安全模式下顺带把动效也压到最低
+      prefs.reduceFx = true
+      prefs.mobileAutoReduce = false
+    }
+    if (persist) savePrefs(prefs)
+    pushFeed('info', value ? '已开启渲染安全模式' : '已关闭渲染安全模式')
+  }
+
+  /** 档位当前是否由移动端自动接管（用于控制栏文案） */
   const effectsAuto = computed(
-    () => !prefs.reduceFx && device.isTouch && prefs.mobileAutoReduce && !device.prefersReducedMotion,
+    () => effectsLevel.value === 'minimal' && prefs.mobileAutoReduce && !prefs.reduceFx,
   )
 
   function persistBest(): void {
@@ -315,7 +346,11 @@ export function createGameStore(options: GameStoreOptions = {}) {
     decayPerSecond,
     atFinalStage,
     effectsReduced,
+    effectsMinimal,
+    effectsLevel,
     effectsAuto,
+    safeRender,
+    applySafeRenderFromUrl,
     pushFeed,
     tick,
     click,

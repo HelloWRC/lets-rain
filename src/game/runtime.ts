@@ -7,7 +7,7 @@
 import { mixHex } from './color'
 import { lerp } from './math'
 import { STAGES } from './stages'
-import type { EffectProfile, StagePalette, Vec2 } from './types'
+import type { EffectProfile, EffectsLevel, StagePalette, Vec2 } from './types'
 
 /** 配色/特效强度跟随阶段切换的平滑速度（1/秒） */
 const RUNTIME_LAG = 1.15
@@ -34,8 +34,12 @@ export interface RuntimeState {
   shake: number
   /** 全屏闪光强度 0..1 */
   flash: number
-  /** 是否减弱特效（系统偏好或用户开关） */
+  /** 是否减弱特效（系统偏好或用户开关或移动端自动） */
   reduced: boolean
+  /** 是否处于「极简」档：彻底不闪 */
+  minimal: boolean
+  /** 当前档位 */
+  level: EffectsLevel
   /** 圆满庆祝强度 0..1 */
   golden: number
 }
@@ -70,6 +74,8 @@ export const runtime: RuntimeState = {
   shake: 0,
   flash: 0,
   reduced: false,
+  minimal: false,
+  level: 'full',
   golden: 0,
 }
 
@@ -101,11 +107,14 @@ export function decayTransients(dt: number, goldenTarget = 0): void {
 }
 
 /** 触发一次全屏闪光（闪电、阶段升级、点击爆点都会用到）。
- *  减弱特效模式下做频率限制：闪光是最容易引起不适的部分，
- *  手机上一秒闪十几次比"少闪几次"糟糕得多。 */
+ *  闪烁是最容易引起不适的部分，按档位分级处理：
+ *   - full   正常
+ *   - reduced 频率限制到 ~4 次/秒，强度 60%
+ *   - minimal 直接不闪（全屏白闪是手机上最刺眼的东西） */
 let lastFlashAt = -10
 
 export function pulseFlash(strength: number): void {
+  if (runtime.minimal) return
   const cooldown = runtime.reduced ? 0.26 : 0.04
   if (runtime.time - lastFlashAt < cooldown) return
   lastFlashAt = runtime.time

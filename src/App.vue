@@ -100,7 +100,8 @@ function applyShake(): void {
 function applyFlash(): void {
   const flash = flashRef.value
   if (!flash) return
-  const value = runtime.reduced ? runtime.flash * 0.35 : runtime.flash
+  // 极简档完全不闪：只保留一个极缓的亮度变化作为"远处闪电"的暗示
+  const value = runtime.minimal ? 0 : runtime.reduced ? runtime.flash * 0.3 : runtime.flash
   flash.style.opacity = clamp01(value).toFixed(3)
 }
 
@@ -110,6 +111,7 @@ function onEscape(event: KeyboardEvent): void {
 
 onMounted(() => {
   initDeviceTracking()
+  if (typeof window !== 'undefined') store.applySafeRenderFromUrl(window.location.search)
   detachLoop = store.attachLoop()
 
   // ---- 音频事件接线 ----
@@ -177,10 +179,13 @@ watch(
 )
 
 watch(
-  () => store.effectsReduced.value,
-  (reduced) => {
-    // 移动端会自动进入减弱档；同时通过 .is-reduced-fx 让 CSS 也一起收力
-    runtime.reduced = reduced
+  () => store.effectsLevel.value,
+  (level) => {
+    // 移动端会自动进入极简档；同时通过 .is-reduced-fx / .is-fx-minimal 让 CSS 也一起收力
+    runtime.level = level
+    runtime.reduced = level !== 'full'
+    runtime.minimal = level === 'minimal'
+    if (level === 'minimal') runtime.flash = 0
   },
   { immediate: true },
 )
@@ -227,13 +232,18 @@ onBeforeUnmount(() => {
   <div
     ref="rootRef"
     class="app"
-    :class="{ 'is-reduced-fx': store.effectsReduced.value, 'is-mobile': device.isMobile }"
+    :class="{
+      'is-reduced-fx': store.effectsReduced.value,
+      'is-fx-minimal': store.effectsMinimal.value,
+      'is-safe-render': store.safeRender.value,
+      'is-mobile': device.isMobile,
+    }"
   >
     <!-- 舞台区：除了免责声明条，所有浮动元素都在这里，因此永远不会被页脚压住 -->
     <div class="stage-area">
       <div ref="worldRef" class="world">
         <SceneBackdrop />
-        <ParticleCanvas />
+        <ParticleCanvas v-if="!store.safeRender.value" />
         <VortexLayer />
         <WindStreaks />
         <LightningLayer />

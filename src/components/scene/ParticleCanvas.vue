@@ -11,6 +11,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useGameTick } from '../../composables/useGameTick'
 import { withAlpha } from '../../game/color'
+import { device } from '../../game/device'
 import { clamp, clamp01, hashRandom } from '../../game/math'
 import { runtime } from '../../game/runtime'
 import { gameStore } from '../../game/store'
@@ -165,7 +166,8 @@ function spawn(dt: number): void {
   if (w <= 0 || h <= 0) return
   const fx = runtime.effects
   const areaScale = clamp((w * h) / (1440 * 900), 0.45, 1.4)
-  const reduce = runtime.reduced ? 0.42 : 1
+  // 极简档（移动端自动）把粒子压到 28%，减弱档 42%
+  const reduce = runtime.minimal ? 0.28 : runtime.reduced ? 0.42 : 1
   const cap = runtime.reduced ? MAX_PARTICLES_REDUCED : MAX_PARTICLES
 
   counts.fill(0)
@@ -404,17 +406,21 @@ function draw(): void {
     }
   }
 
-  // ---- 闪电（叠加发光） ----
+  // ---- 闪电 ----
+  // 极简档：不用叠加发光、亮度减半，只留一条暗折线暗示"远处有雷"，不做闪屏
   if (bolts.length > 0) {
+    const minimal = runtime.minimal
     ctx.save()
-    ctx.globalCompositeOperation = 'lighter'
+    if (!minimal) ctx.globalCompositeOperation = 'lighter'
     for (const bolt of bolts) {
       const fade = clamp01(1 - bolt.life / bolt.maxLife)
-      ctx.strokeStyle = withAlpha('#cfe6ff', 0.22 * fade)
-      ctx.lineWidth = 8 + 10 * fade
-      strokeBolt(ctx, bolt)
-      ctx.strokeStyle = withAlpha('#ffffff', 0.95 * fade)
-      ctx.lineWidth = 2.2
+      if (!minimal) {
+        ctx.strokeStyle = withAlpha('#cfe6ff', 0.22 * fade)
+        ctx.lineWidth = 8 + 10 * fade
+        strokeBolt(ctx, bolt)
+      }
+      ctx.strokeStyle = withAlpha(minimal ? '#8ea7c4' : '#ffffff', (minimal ? 0.3 : 0.95) * fade)
+      ctx.lineWidth = minimal ? 1.4 : 2.2
       strokeBolt(ctx, bolt)
     }
     ctx.restore()
@@ -465,7 +471,10 @@ function spawnBolt(x: number, y: number, intensity: number): void {
 function resize(): void {
   const canvas = canvasRef.value
   if (!canvas || typeof window === 'undefined') return
-  const dpr = Math.min(window.devicePixelRatio || 1, runtime.reduced ? 1.25 : 2)
+  // 触屏设备压低画布分辨率：手机上 DPR 3 的全屏画布会吃掉大量显存，
+  // 而"内容变黑"的根因通常就是显存/合成压力。
+  const dprCap = runtime.minimal ? 1.25 : device.isTouch ? 1.5 : 2
+  const dpr = Math.min(window.devicePixelRatio || 1, dprCap)
   const w = canvas.clientWidth || window.innerWidth
   const h = canvas.clientHeight || window.innerHeight
   if (w === size.w && h === size.h && dpr === size.dpr) return

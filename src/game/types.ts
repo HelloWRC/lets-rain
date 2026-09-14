@@ -147,6 +147,9 @@ export interface Prefs {
   reduceFx: boolean
   /** 在移动端（触屏/窄屏）自动减弱特效；用户手动切换过「减弱特效」后自动置为 false */
   mobileAutoReduce: boolean
+  /** 渲染安全模式：连 Canvas、渐变、模糊、阴影都不渲染，只保留纯色背景 + 按钮 + 面板。
+   *  用于排查/兜底"移动端内容变黑"这类合成器问题，用 ?safe=1 打开、?safe=0 关闭。 */
+  safeRender: boolean
   hintSeen: boolean
 }
 
@@ -165,6 +168,16 @@ export interface ClickOutcome {
 }
 
 export type FeedKind = 'stage' | 'combo' | 'info' | 'warn'
+
+/**
+ * 特效档位：
+ *  - full     完整特效（桌面默认）
+ *  - reduced  减弱（用户手动开 / 系统 prefers-reduced-motion）：
+ *             粒子减少、无震动、无频闪、闪光限频
+ *  - minimal  极简（移动端自动）：在 reduced 基础上**彻底关掉全屏闪光**、
+ *             闪电只留暗折线且频率减半、去掉风向流线与播报、云层更少更慢、粒子再减半
+ */
+export type EffectsLevel = 'full' | 'reduced' | 'minimal'
 
 export interface FeedItem {
   id: number
