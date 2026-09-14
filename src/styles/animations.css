@@ -1,0 +1,282 @@
+/* 全部关键帧动画。特效强度由 CSS 变量（--intensity / --aura / --vortex 等）调制。 */
+
+/* ---- 晴天：太阳与日芒 ---- */
+@keyframes sun-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sun-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+/* ---- 热浪扭曲 ---- */
+@keyframes heat-warp {
+  0% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) scaleY(1.03);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+}
+
+/* ---- 云 ---- */
+@keyframes cloud-drift {
+  from {
+    transform: translate3d(-12%, 0, 0);
+  }
+  to {
+    transform: translate3d(112%, 0, 0);
+  }
+}
+
+@keyframes cloud-billow {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.06, 0.94);
+  }
+}
+
+/* ---- 风：流线 ---- */
+@keyframes streak-fly {
+  from {
+    transform: translate3d(-30vw, 0, 0) scaleX(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.75;
+  }
+  to {
+    transform: translate3d(130vw, 0, 0) scaleX(1.4);
+    opacity: 0;
+  }
+}
+
+/* ---- 雨丝（DOM 层的水幕，不依赖 canvas） ---- */
+@keyframes rain-fall {
+  from {
+    transform: translate3d(0, -30vh, 0);
+  }
+  to {
+    transform: translate3d(-6vw, 130vh, 0);
+  }
+}
+
+/* ---- 按钮 / 光环 ---- */
+@keyframes aura-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aura-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 0.95;
+  }
+}
+
+@keyframes ripple-out {
+  from {
+    transform: scale(0.55);
+    opacity: 0.85;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes btn-press {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.93);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes arc-flicker {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  30% {
+    opacity: 0.95;
+  }
+  20% {
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 0.7;
+  }
+  60% {
+    opacity: 0;
+  }
+}
+
+/* ---- 强对流：涡流 ---- */
+@keyframes vortex-spin {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(360deg) scale(1.04);
+  }
+}
+
+@keyframes vortex-wobble {
+  0%,
+  100% {
+    transform: translate3d(-50%, 0, 0) rotate(-2deg) scaleX(1);
+  }
+  50% {
+    transform: translate3d(-50%, 0, 0) rotate(2deg) scaleX(0.94);
+  }
+}
+
+/* ---- 浮字 ----
+ * 注意：整条浮字（含底板与文字）一旦进入淡入/淡出，两者会同时向背景色混合，
+ * 文字与底板的对比度会被压缩（实测淡入期间只有 1.3:1）。
+ * 所以这里让不透明度快速到 1 并保持大半段生命期，只留一个短促的收尾淡出。 */
+@keyframes float-up {
+  0% {
+    transform: translate3d(-50%, 0, 0) scale(0.72);
+    opacity: 0.5;
+  }
+  9% {
+    transform: translate3d(-50%, -10px, 0) scale(1.08);
+    opacity: 1;
+  }
+  74% {
+    transform: translate3d(-50%, -62px, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-50%, -92px, 0) scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* ---- 播报 / 横幅 ---- */
+@keyframes banner-in {
+  0% {
+    transform: translate3d(-50%, -24px, 0) scale(0.92);
+    opacity: 0;
+  }
+  14% {
+    transform: translate3d(-50%, 0, 0) scale(1.02);
+    opacity: 1;
+  }
+  82% {
+    transform: translate3d(-50%, 0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-50%, -18px, 0) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes feed-in {
+  from {
+    transform: translate3d(18px, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+/* ---- 频闪（强对流）：强度用 --strobe-level 缩放 ---- */
+@keyframes strobe {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  45% {
+    opacity: calc(0.12 * var(--strobe-level, 1));
+  }
+  50% {
+    opacity: calc(0.34 * var(--strobe-level, 1));
+  }
+  55% {
+    opacity: calc(0.1 * var(--strobe-level, 1));
+  }
+}
+
+/* ---- 圆满庆祝 ---- */
+@keyframes rainbow-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-50%, 30px, 0) scale(0.8);
+  }
+  to {
+    opacity: 0.85;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+@keyframes celebration-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes halo-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 40px 8px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 90px 26px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+}
+
+/* 提示条的"呼吸"用外发光而不是 opacity：
+   给文字元素做 opacity 脉冲会在低点把对比度一起压掉。 */
+@keyframes chip-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+}

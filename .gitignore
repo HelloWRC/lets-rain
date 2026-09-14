@@ -1,0 +1,22 @@
+# 依赖与构建产物
+node_modules
+dist
+dist-ssr
+coverage
+
+# 本地文件
+*.local
+*.log
+.vite
+
+# 编辑/工具产生的临时目录
+.*.tmpdir
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# 锁文件必须入库（pnpm-lock.yaml 不在此忽略）

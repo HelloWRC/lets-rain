@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="求雨">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3d7fd6" />
+      <stop offset="100%" stop-color="#8fc4f0" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#sky)" />
+  <path
+    d="M20 38a9 9 0 0 1 1.4-17.9A12 12 0 0 1 44 22.5a8.5 8.5 0 0 1 1.5 16.9z"
+    fill="#f4f8ff"
+    opacity="0.95"
+  />
+  <g stroke="#9fd8ff" stroke-width="3.2" stroke-linecap="round">
+    <path d="M22 44l-3 8" />
+    <path d="M32 44l-3 8" />
+    <path d="M42 44l-3 8" />
+  </g>
+</svg>

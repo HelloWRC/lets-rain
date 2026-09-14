@@ -1,0 +1,9 @@
+# pnpm 配置载体。
+# 本项目是单包项目（不声明 packages），此文件仅用于承载 pnpm 11 的设置项：
+# pnpm 11 起 package.json 中的 "pnpm" 字段不再被读取，构建脚本白名单必须写在这里。
+allowBuilds:
+  # vite 7 依赖 esbuild，其 postinstall 需要执行；pnpm 默认阻止依赖构建脚本。
+  esbuild: true
+# pnpm 生成的安装年龄豁免记录，保持原样以避免重复提示。
+minimumReleaseAgeExclude:
+  - '@vitejs/plugin-vue@6.0.9'
