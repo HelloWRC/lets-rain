@@ -125,6 +125,20 @@ describe('躲避指针', () => {
     expect(dodgeOffset({ ...input, profile: SEVERE.wind, easyMode: true })).toEqual({ x: 0, y: 0 })
   })
 
+  it('触屏降级：dodgeScale 按比例削弱躲避推力', () => {
+    const input = {
+      home: HOME,
+      pointer: { x: HOME.x - 60, y: HOME.y },
+      buttonSize: BUTTON,
+      viewport: VIEWPORT,
+      profile: SEVERE.wind,
+    }
+    const full = dodgeOffset({ ...input, dodgeScale: 1 })
+    const touch = dodgeOffset({ ...input, dodgeScale: 0.55 })
+    expect(touch.x).toBeCloseTo(full.x * 0.55, 6)
+    expect(dodgeOffset({ ...input, dodgeScale: 0 })).toEqual({ x: 0, y: 0 })
+  })
+
   it('无指针（触屏未按下 / 鼠标未移动）时不躲', () => {
     expect(
       dodgeOffset({

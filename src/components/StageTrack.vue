@@ -207,12 +207,42 @@ useGameTick(() => {
 }
 
 @media (max-width: 560px) {
+  .track {
+    padding: 8px 10px 7px;
+    gap: 6px;
+  }
   .track__name {
     font-size: 10px;
     letter-spacing: 0;
   }
+  .track__note {
+    font-size: 11.5px;
+  }
   .track__hint {
     display: none;
+  }
+}
+
+/* 手机横屏：竖向空间极窄，轨道只保留节点与阶段名 */
+@media (max-height: 480px) {
+  .track {
+    padding: 7px 10px;
+    gap: 5px;
+  }
+  .track__note {
+    display: none;
+  }
+  .track__dot {
+    width: 14px;
+    height: 14px;
+  }
+  .track__ring {
+    inset: -8px;
+    width: 30px;
+    height: 30px;
+  }
+  .track__node + .track__node::before {
+    top: 7px;
   }
 }
 </style>

@@ -1,15 +1,20 @@
 <script setup lang="ts">
 /**
  * 侧边数据面板：连击 / 诚心值 / 统计 / 历史记录。
+ *
+ * 移动端适配：桌面是左侧三张卡片；窄屏下（≤900px）显示为底部一行紧凑胶囊，
+ * 完整卡片收进「详情」里，避免手机上被界面占掉三分之一屏幕。
+ *
  * 逐帧变化的值（连击倒计时、总进度）做节流提交，避免每帧重渲染。
  */
 import { computed, ref } from 'vue'
 import { useGameTick } from '../composables/useGameTick'
-import { STAGES, comboNextTier } from '../game/stages'
+import { comboNextTier, STAGES } from '../game/stages'
 import { gameStore } from '../game/store'
 
 const store = gameStore
 
+const cardsOpen = ref(false)
 const comboBar = ref(0)
 const overallCommitted = ref(0)
 const elapsedSec = ref(0)
@@ -19,6 +24,7 @@ let lastOverallStep = -1
 let elapsedAccum = 0
 
 const comboText = computed(() => (store.state.combo > 1 ? `×${store.state.combo}` : '—'))
+const prayersText = computed(() => Math.round(store.state.totalPrayers).toString())
 const multiplierText = computed(() => `×${store.multiplier.value.toFixed(2).replace(/0$/, '')}`)
 const nextTierText = computed(() => {
   const tier = comboNextTier(store.state.combo)
@@ -63,75 +69,95 @@ useGameTick((dtMs) => {
 
 <template>
   <aside class="hud" aria-label="求雨数据面板">
-    <section class="hud__card panel">
-      <h2 class="panel-title">连击</h2>
-      <p class="hud__combo">{{ comboText }}</p>
-      <div class="hud__bar" role="presentation">
-        <span class="hud__bar-fill" :style="{ transform: `scaleX(${comboBar})` }" />
-      </div>
-      <p class="hud__meta">
-        {{ multiplierText }} 倍增益 · {{ nextTierText }}
-      </p>
-    </section>
-
-    <section class="hud__card panel">
-      <h2 class="panel-title">本轮</h2>
-      <dl class="hud__stats">
-        <div>
-          <dt>诚心值</dt>
-          <dd>{{ store.state.totalPrayers.toFixed(1) }}</dd>
-        </div>
-        <div>
-          <dt>单次增益</dt>
-          <dd>{{ gainText }}</dd>
-        </div>
-        <div>
-          <dt>点击数</dt>
-          <dd>{{ store.state.totalClicks }}</dd>
-        </div>
-        <div>
-          <dt>手滑</dt>
-          <dd>{{ store.missCount.value }}</dd>
-        </div>
-        <div>
-          <dt>本轮用时</dt>
-          <dd>{{ elapsedText }}</dd>
-        </div>
-        <div>
-          <dt>下一阶段</dt>
-          <dd>{{ nextStageName }}</dd>
-        </div>
-      </dl>
-      <p class="hud__decay">
-        闲置回落 <strong>{{ decayText }}</strong>
-        <span v-if="easyMode">（轻松模式已减半风力）</span>
-      </p>
-      <button class="ghost-button hud__easy" type="button" :aria-pressed="easyMode" @click="onToggleEasy">
-        {{ easyMode ? '轻松模式：开' : '轻松模式：关' }}
+    <!-- 窄屏专用的紧凑条 -->
+    <div class="hud__strip">
+      <span class="hud__pill">连击 <strong>{{ comboText }}</strong></span>
+      <span class="hud__pill">诚心 <strong>{{ prayersText }}</strong></span>
+      <span class="hud__pill">手滑 <strong>{{ store.missCount.value }}</strong></span>
+      <button
+        class="hud__pill hud__more"
+        type="button"
+        :aria-expanded="cardsOpen"
+        @click="cardsOpen = !cardsOpen"
+      >
+        {{ cardsOpen ? '收起' : '详情' }}
       </button>
-    </section>
+    </div>
 
-    <section class="hud__card panel">
-      <h2 class="panel-title">最好成绩</h2>
-      <dl class="hud__stats">
-        <div>
-          <dt>最高阶段</dt>
-          <dd>{{ bestStageName }}</dd>
+    <div class="hud__cards" :class="{ 'is-open': cardsOpen }">
+      <section class="hud__card panel">
+        <h2 class="panel-title">连击</h2>
+        <p class="hud__combo">{{ comboText }}</p>
+        <div class="hud__bar" role="presentation">
+          <span class="hud__bar-fill" :style="{ transform: `scaleX(${comboBar})` }" />
         </div>
-        <div>
-          <dt>最高连击</dt>
-          <dd>{{ store.best.bestCombo }}</dd>
-        </div>
-        <div>
-          <dt>求雨圆满</dt>
-          <dd>{{ store.best.completions }} 次</dd>
-        </div>
-        <div>
-          <dt>总进度</dt>
-          <dd>{{ (overallCommitted / 6).toFixed(1) }}%</dd>
-        </div>
-      </dl>
-    </section>
+        <p class="hud__meta">{{ multiplierText }} 倍增益 · {{ nextTierText }}</p>
+      </section>
+
+      <section class="hud__card panel">
+        <h2 class="panel-title">本轮</h2>
+        <dl class="hud__stats">
+          <div>
+            <dt>诚心值</dt>
+            <dd>{{ store.state.totalPrayers.toFixed(1) }}</dd>
+          </div>
+          <div>
+            <dt>单次增益</dt>
+            <dd>{{ gainText }}</dd>
+          </div>
+          <div>
+            <dt>点击数</dt>
+            <dd>{{ store.state.totalClicks }}</dd>
+          </div>
+          <div>
+            <dt>手滑</dt>
+            <dd>{{ store.missCount.value }}</dd>
+          </div>
+          <div>
+            <dt>本轮用时</dt>
+            <dd>{{ elapsedText }}</dd>
+          </div>
+          <div>
+            <dt>下一阶段</dt>
+            <dd>{{ nextStageName }}</dd>
+          </div>
+        </dl>
+        <p class="hud__decay">
+          闲置回落 <strong>{{ decayText }}</strong>
+          <span v-if="easyMode">（轻松模式已减半风力）</span>
+        </p>
+        <button
+          class="ghost-button hud__easy"
+          type="button"
+          :aria-pressed="easyMode"
+          @click="onToggleEasy"
+        >
+          {{ easyMode ? '轻松模式：开' : '轻松模式：关' }}
+        </button>
+      </section>
+
+      <section class="hud__card panel">
+        <h2 class="panel-title">最好成绩</h2>
+        <dl class="hud__stats">
+          <div>
+            <dt>最高阶段</dt>
+            <dd>{{ bestStageName }}</dd>
+          </div>
+          <div>
+            <dt>最高连击</dt>
+            <dd>{{ store.best.bestCombo }}</dd>
+          </div>
+          <div>
+            <dt>求雨圆满</dt>
+            <dd>{{ store.best.completions }} 次</dd>
+          </div>
+          <div>
+            <dt>总进度</dt>
+            <dd>{{ (overallCommitted / 6).toFixed(1) }}%</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
   </aside>
 </template>
 
@@ -142,9 +168,16 @@ useGameTick((dtMs) => {
   left: var(--pad);
   z-index: var(--z-hud);
   width: 210px;
+  pointer-events: none;
+}
+
+.hud__cards {
   display: grid;
   gap: 10px;
-  pointer-events: none;
+}
+
+.hud__strip {
+  display: none;
 }
 
 .hud__card {
@@ -219,26 +252,89 @@ useGameTick((dtMs) => {
   width: 100%;
 }
 
+/* ---- 窄屏：底部紧凑条 + 可展开的详情 ---- */
 @media (max-width: 900px) {
   .hud {
     top: auto;
-    bottom: calc(var(--pad) + 74px);
-    left: var(--pad);
-    right: var(--pad);
+    bottom: calc(var(--pad) + 58px);
+    left: calc(var(--pad) + var(--safe-left));
+    right: calc(var(--pad) + var(--safe-right));
     width: auto;
+  }
+
+  .hud__strip {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    pointer-events: auto;
   }
-  .hud__card {
-    flex: 1 1 0;
-    min-width: 0;
+
+  .hud__pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 8px 11px;
+    min-height: 44px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    color: var(--hud-text-muted);
+    background: var(--hud-surface-solid);
+    border: 1px solid var(--hud-border);
   }
-  .hud__card:last-child {
+
+  .hud__pill strong {
+    font-size: 14px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--hud-text);
+  }
+
+  .hud__more {
+    font-weight: 700;
+    color: var(--hud-text);
+    cursor: pointer;
+  }
+
+  .hud__cards {
     display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 46vh;
+    overflow: auto;
   }
+
+  .hud__cards.is-open {
+    display: grid;
+  }
+
+  .hud__cards > :last-child {
+    grid-column: 1 / -1;
+  }
+
   .hud__combo {
     font-size: 24px;
+  }
+
+  .hud__easy {
+    min-height: 44px;
+  }
+}
+
+/* ---- 横屏矮屏：详情默认收起，紧凑条再压一点 ---- */
+@media (max-height: 480px) {
+  .hud__pill {
+    padding: 5px 9px;
+    min-height: 34px;
+    font-size: 11.5px;
+  }
+  .hud__cards {
+    max-height: 60vh;
   }
 }
 </style>

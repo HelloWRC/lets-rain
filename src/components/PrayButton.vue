@@ -10,10 +10,14 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import ButtonAura from './ButtonAura.vue'
 import { useGameTick } from '../composables/useGameTick'
+import { device } from '../game/device'
 import { clamp01 } from '../game/math'
 import { pulseFlash, pulseShake, runtime } from '../game/runtime'
 import { gameStore } from '../game/store'
 import { ButtonDrift } from '../game/wind'
+
+/** 触屏上把躲避强度降到 55%：手指没有 hover，追一颗逃跑的按钮只会让人放弃 */
+const TOUCH_DODGE_SCALE = 0.55
 
 interface Ripple {
   id: number
@@ -73,7 +77,8 @@ function hit(clientX: number, clientY: number): void {
     const rect = button.getBoundingClientRect()
     addRipple(clientX - rect.left, clientY - rect.top)
   }
-  pulseFlash(0.04)
+  // 弱点闪：减弱特效模式下不再每点一次闪一下（连点时它是主要的闪烁来源）
+  if (!runtime.reduced) pulseFlash(0.04)
   const shake = store.stage.value.effects.shake
   if (shake > 0.2 && !runtime.reduced) pulseShake(shake * 0.09)
 }
@@ -138,7 +143,9 @@ useGameTick((dtMs) => {
       viewport,
       profile: stage.wind,
       intensity: runtime.intensity,
-      easyMode: store.prefs.easyMode || runtime.reduced,
+      // 躲避只跟"轻松模式"绑定，不再跟"减弱特效"绑定：减弱特效是视觉偏好，不该改难度
+      easyMode: store.prefs.easyMode,
+      dodgeScale: store.prefs.easyMode ? 0 : device.isTouch ? TOUCH_DODGE_SCALE : 1,
     },
     runtime.pointer,
   )

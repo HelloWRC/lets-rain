@@ -14,7 +14,7 @@ const store = gameStore
 let accumulator = 0
 
 const strobeActive = computed(
-  () => store.stage.value.effects.strobe > 0.05 && !store.prefs.reduceFx,
+  () => store.stage.value.effects.strobe > 0.05 && !store.effectsReduced.value,
 )
 
 const strobeLevel = computed(() => (0.5 + store.stage.value.effects.strobe * 0.5).toFixed(2))

@@ -100,12 +100,21 @@ export function decayTransients(dt: number, goldenTarget = 0): void {
   runtime.golden = lerp(runtime.golden, goldenTarget, 1 - Math.exp(-1.4 * dt))
 }
 
-/** 触发一次全屏闪光（闪电、阶段升级、点击爆点都会用到）。 */
+/** 触发一次全屏闪光（闪电、阶段升级、点击爆点都会用到）。
+ *  减弱特效模式下做频率限制：闪光是最容易引起不适的部分，
+ *  手机上一秒闪十几次比"少闪几次"糟糕得多。 */
+let lastFlashAt = -10
+
 export function pulseFlash(strength: number): void {
-  runtime.flash = Math.min(1.2, runtime.flash + strength)
+  const cooldown = runtime.reduced ? 0.26 : 0.04
+  if (runtime.time - lastFlashAt < cooldown) return
+  lastFlashAt = runtime.time
+  const scale = runtime.reduced ? 0.6 : 1
+  runtime.flash = Math.min(1.2, runtime.flash + strength * scale)
 }
 
 /** 触发一次屏幕震动。 */
 export function pulseShake(strength: number): void {
+  if (runtime.reduced) return
   runtime.shake = Math.min(1.6, runtime.shake + strength)
 }

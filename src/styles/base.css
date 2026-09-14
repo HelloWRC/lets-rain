@@ -17,6 +17,8 @@ body {
   color: var(--hud-text);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* 移动端点击时浏览器默认会闪一个高亮方块，本身就是"闪烁" */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -33,6 +35,8 @@ button {
   border: none;
   background: none;
   cursor: pointer;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 :focus-visible {
@@ -115,7 +119,8 @@ button {
   border-radius: var(--radius-pill);
   font-size: 12px;
   line-height: 1.5;
-  background: var(--hud-surface-soft);
+  /* 同样是"可能压在亮天空上"的小元素，用不透明底 */
+  background: var(--hud-surface-solid);
   border: 1px solid var(--hud-border);
   color: var(--hud-text);
 }
@@ -159,6 +164,54 @@ button {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ==========================================================================
+   减弱特效模式（.is-reduced-fx）
+   由 store.effectsReduced 驱动：用户手动开关 / 系统 prefers-reduced-motion /
+   移动端自动减弱，三者任一命中即生效。
+   目标是把"闪烁"和"大幅旋转位移"压下去，同时保留天气本身的变化（云、雨、配色）。
+   用 !important 是因为组件样式是 scoped 的，优先级不可靠。
+   ========================================================================== */
+.is-reduced-fx .strobe,
+.is-reduced-fx .arcs {
+  display: none !important;
+}
+
+/* 脉冲式发光（心跳一般的明暗）最容易诱发光敏不适，直接停掉 */
+.is-reduced-fx .pray-btn,
+.is-reduced-fx .halo,
+.is-reduced-fx .sun-glow,
+.is-reduced-fx .eye,
+.is-reduced-fx .ring,
+.is-reduced-fx .controls__hint,
+.is-reduced-fx .heat,
+.is-reduced-fx .raindrops,
+.is-reduced-fx .cloud-layer::after {
+  animation: none !important;
+}
+
+/* 旋转类特效放慢到几乎察觉不到 */
+.is-reduced-fx .sun-rays,
+.is-reduced-fx .cloud-puffs,
+.is-reduced-fx .dust-ring,
+.is-reduced-fx .hail-bounce,
+.is-reduced-fx .vortex-ring,
+.is-reduced-fx .funnel {
+  animation-duration: 90s !important;
+}
+
+.is-reduced-fx .cloud-layer {
+  animation-duration: 260s !important;
+}
+
+.is-reduced-fx .streak {
+  animation-duration: 7s !important;
+}
+
+/* 闪光改为缓慢过渡，避免硬切 */
+.is-reduced-fx .flash {
+  transition: opacity 0.3s linear;
 }
 
 @media (prefers-reduced-motion: reduce) {

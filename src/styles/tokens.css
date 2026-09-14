@@ -4,6 +4,12 @@
   --font-sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Noto Sans SC', sans-serif;
 
+  /* 刘海屏 / 手势条安全区（index.html 已声明 viewport-fit=cover） */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
   /* 尺寸 */
   --button-size: 170px;
   --pad: 16px;
@@ -34,9 +40,8 @@
    * 另外闪电会把整屏闪白，浅底深字的面板会瞬间失效，深底亮字始终安全。
    * 括号内为对合成后深底（最亮天空背景）的实测对比度。 */
   --hud-surface: rgba(10, 18, 30, 0.86);
-  --hud-surface-soft: rgba(10, 18, 30, 0.74);
-  /* 不透明版本：用在"背后可能是任意背景"的小元素上（按钮、播报条），
-   * 半透明底会让浅色草地/云透出来，实测有过 1.6:1 的情况。 */
+  /* 不透明版本：用在"背后可能是任意背景"的小元素上（胶囊、按钮、播报条、浮字），
+   * 半透明底会让浅色天空/草地/云透出来，实测有过 1.6:1 与 2.8:1 的情况。 */
   --hud-surface-solid: #0c1522;
   --hud-border: rgba(226, 238, 252, 0.2);
   --hud-text: #f2f7fc; /* ≈ 11:1 */
@@ -84,15 +89,19 @@
   --aura: 0;
 }
 
+/* ---- 移动端断点 ----
+ * ≤720px：手机竖屏，按钮缩小、内边距收紧；
+ * ≤480px 高：手机横屏，进一步压低所有界面元素。 */
 @media (max-width: 720px) {
   :root {
-    --button-size: 138px;
+    --button-size: 132px;
     --pad: 12px;
   }
 }
 
-@media (max-height: 620px) {
+@media (max-height: 480px) {
   :root {
-    --button-size: 120px;
+    --button-size: 104px;
+    --pad: 10px;
   }
 }

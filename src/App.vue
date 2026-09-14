@@ -23,15 +23,14 @@ import SceneBackdrop from './components/scene/SceneBackdrop.vue'
 import VortexLayer from './components/scene/VortexLayer.vue'
 import WindStreaks from './components/scene/WindStreaks.vue'
 import { useGameTick } from './composables/useGameTick'
-import { useReducedMotion } from './composables/useReducedMotion'
 import { audioEngine } from './game/audio'
 import { withAlpha } from './game/color'
+import { initDeviceTracking, device } from './game/device'
 import { clamp01 } from './game/math'
 import { runtime } from './game/runtime'
 import { gameStore } from './game/store'
 
 const store = gameStore
-const reducedMotion = useReducedMotion()
 
 const rootRef = ref<HTMLElement | null>(null)
 const worldRef = ref<HTMLElement | null>(null)
@@ -110,6 +109,7 @@ function onEscape(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
+  initDeviceTracking()
   detachLoop = store.attachLoop()
 
   // ---- 音频事件接线 ----
@@ -177,9 +177,10 @@ watch(
 )
 
 watch(
-  [reducedMotion, () => store.prefs.reduceFx],
-  ([systemReduced, userReduced]) => {
-    runtime.reduced = systemReduced || userReduced
+  () => store.effectsReduced.value,
+  (reduced) => {
+    // 移动端会自动进入减弱档；同时通过 .is-reduced-fx 让 CSS 也一起收力
+    runtime.reduced = reduced
   },
   { immediate: true },
 )
@@ -223,7 +224,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="rootRef" class="app">
+  <div
+    ref="rootRef"
+    class="app"
+    :class="{ 'is-reduced-fx': store.effectsReduced.value, 'is-mobile': device.isMobile }"
+  >
     <!-- 舞台区：除了免责声明条，所有浮动元素都在这里，因此永远不会被页脚压住 -->
     <div class="stage-area">
       <div ref="worldRef" class="world">
@@ -244,6 +249,8 @@ onBeforeUnmount(() => {
 
       <main class="playfield">
         <PrayButton />
+        <!-- 音频需要用户手势才能启动：提示挂在按钮下方，不占控制栏空间 -->
+        <p v-if="!audioReady" class="audio-hint chip" role="status">点一下即可开启音效</p>
       </main>
       <FloatingText />
 
@@ -253,7 +260,12 @@ onBeforeUnmount(() => {
 
       <div ref="flashRef" class="flash" aria-hidden="true" />
 
-      <ControlBar :audio-ready="audioReady" @open-about="showAbout = true" />
+      <ControlBar
+        :fx-reduced="store.effectsReduced.value"
+        :fx-auto="store.effectsAuto.value"
+        @toggle-fx="store.toggleEffectsReduced()"
+        @open-about="showAbout = true"
+      />
     </div>
 
     <DisclaimerBar @open-about="showAbout = true" />
@@ -280,11 +292,13 @@ onBeforeUnmount(() => {
 
 .topbar {
   position: absolute;
-  top: var(--pad);
+  top: 0;
   left: 0;
   right: 0;
   z-index: var(--z-hud);
-  padding: 0 var(--pad);
+  /* 顶部让开刘海/状态栏 */
+  padding: calc(var(--pad) + var(--safe-top)) calc(var(--pad) + var(--safe-right)) 0
+    calc(var(--pad) + var(--safe-left));
   pointer-events: none;
 }
 
@@ -303,5 +317,16 @@ onBeforeUnmount(() => {
 
 .playfield > * {
   pointer-events: auto;
+}
+
+.audio-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  translate: -50% 0;
+  pointer-events: none;
+  animation: chip-glow 2.4s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  white-space: nowrap;
 }
 </style>

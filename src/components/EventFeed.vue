@@ -16,7 +16,7 @@ const store = gameStore
 <style scoped>
 .feed {
   position: absolute;
-  right: var(--pad);
+  right: calc(var(--pad) + var(--safe-right));
   bottom: calc(var(--pad) + 62px);
   z-index: var(--z-hud);
   width: min(320px, 46vw);
@@ -58,12 +58,39 @@ const store = gameStore
   border-color: rgba(255, 180, 140, 0.7);
 }
 
-@media (max-width: 620px) {
+/* 窄屏：让开底部的"紧凑数据条"与"控制栏"，并且只留最近 3 条 */
+@media (max-width: 900px) {
   .feed {
-    width: min(260px, 62vw);
-    bottom: calc(var(--pad) + 96px);
+    left: calc(var(--pad) + var(--safe-left));
+    right: calc(var(--pad) + var(--safe-right));
+    width: auto;
+    bottom: calc(var(--pad) + 112px);
+    justify-items: center;
+  }
+  .feed__item {
+    text-align: center;
+    font-size: 11.5px;
+    padding: 5px 10px;
   }
   .feed__item:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+/* 手机横屏：竖向没地方了，把播报挪到右上角空位，只留最新一条 */
+@media (max-height: 480px) {
+  .feed {
+    top: calc(var(--pad) + 42px + var(--safe-top));
+    bottom: auto;
+    left: auto;
+    right: calc(var(--pad) + var(--safe-right));
+    width: min(46vw, 320px);
+    justify-items: end;
+  }
+  .feed__item {
+    text-align: right;
+  }
+  .feed__item:nth-child(n + 2) {
     display: none;
   }
 }

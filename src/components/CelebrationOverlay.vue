@@ -95,11 +95,24 @@ const store = gameStore
   padding-inline: 22px;
 }
 
-@media (max-width: 620px) {
+/* 窄屏：宣布横幅、紧凑数据条、控制栏都挤在底部，结算卡片要抬到它们上面 */
+@media (max-width: 900px) {
   .celebration {
-    padding-bottom: calc(var(--pad) + 96px);
+    padding-bottom: calc(var(--pad) + 158px);
   }
   .celebration__rainbow {
+    display: none;
+  }
+  .celebration__card {
+    width: min(420px, calc(100% - 2 * var(--pad)));
+  }
+}
+
+@media (max-height: 480px) {
+  .celebration {
+    padding-bottom: calc(var(--pad) + 100px);
+  }
+  .celebration__text {
     display: none;
   }
 }

@@ -76,6 +76,8 @@ export interface DodgeInput {
   viewport: Viewport
   profile: WindProfile
   easyMode?: boolean
+  /** 躲避强度缩放（触屏设备默认调低：手指没有 hover，追一颗逃跑的按钮太挫败） */
+  dodgeScale?: number
 }
 
 /**
@@ -86,7 +88,7 @@ export interface DodgeInput {
 export function dodgeOffset(input: DodgeInput): Vec2 {
   const { home, pointer, buttonSize, viewport, profile } = input
   if (input.easyMode || !pointer) return { x: 0, y: 0 }
-  const strength = clamp01(profile.dodge)
+  const strength = clamp01(profile.dodge) * clamp01(input.dodgeScale ?? 1)
   if (strength <= 0) return { x: 0, y: 0 }
 
   const dx = home.x - pointer.x
@@ -111,6 +113,8 @@ export interface DriftConfig {
   /** 阶段内进度 0..1 */
   intensity: number
   easyMode: boolean
+  /** 躲避强度缩放，默认 1（触屏用 0.55） */
+  dodgeScale?: number
 }
 
 /** 有状态的按钮漂移器：风场 + 带滞后平滑的躲避，输出已钳制的最终位移。 */
@@ -135,6 +139,7 @@ export class ButtonDrift {
       viewport: cfg.viewport,
       profile: cfg.profile,
       easyMode: cfg.easyMode,
+      dodgeScale: cfg.dodgeScale,
     })
     const lag = Math.max(0.05, cfg.profile.dodgeLag)
     this.smoothedDodge.x = damp(this.smoothedDodge.x, target.x, 1 / lag, dt)

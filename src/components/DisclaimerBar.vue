@@ -8,8 +8,14 @@
  *  - 正文 13px / 行高 1.65（窄屏 12.5px），左对齐、限制行宽，长句更好读。
  *  - 「仅供娱乐」做成高对比徽标，关键限制条款加粗提亮，一眼能扫到。
  *  - 完整声明放不进一条状态栏，改用「查看完整声明」按钮直达关于面板。
+ *  - 移动端：按钮排在正文右侧（不另占一行），按钮文案缩短，整条尽量矮。
  */
+import { computed } from 'vue'
+import { device } from '../game/device'
+
 defineEmits<{ (event: 'open-about'): void }>()
+
+const narrow = computed(() => device.isNarrow)
 </script>
 
 <template>
@@ -22,8 +28,13 @@ defineEmits<{ (event: 'open-about'): void }>()
           真实天气请以官方气象部门发布的信息为准。
         </span>
       </p>
-      <button class="disclaimer-bar__link" type="button" @click="$emit('open-about')">
-        查看完整声明
+      <button
+        class="disclaimer-bar__link"
+        type="button"
+        aria-label="查看完整免责声明"
+        @click="$emit('open-about')"
+      >
+        {{ narrow ? '完整声明' : '查看完整声明' }}
       </button>
     </div>
   </aside>
@@ -36,7 +47,8 @@ defineEmits<{ (event: 'open-about'): void }>()
   z-index: var(--z-hud);
   display: flex;
   align-items: center;
-  padding: 8px calc(var(--pad) + 4px);
+  padding: 8px calc(var(--pad) + 4px + var(--safe-right)) calc(8px + var(--safe-bottom))
+    calc(var(--pad) + 4px + var(--safe-left));
   background: var(--note-surface);
   border-top: 1px solid var(--note-border);
   backdrop-filter: blur(10px);
@@ -114,23 +126,47 @@ defineEmits<{ (event: 'open-about'): void }>()
 
 @media (max-width: 720px) {
   .disclaimer-bar {
-    align-items: flex-start;
-    padding: 8px var(--pad);
+    align-items: center;
+    padding: 8px calc(var(--pad) + var(--safe-right)) calc(8px + var(--safe-bottom))
+      calc(var(--pad) + var(--safe-left));
   }
-  /* 窄屏：按钮跟着正文行内流走，不再单独占一行 */
+  /* 按钮排在正文右侧而不是另起一行：整条声明能矮掉 40px 左右 */
   .disclaimer-bar__inner {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
   .disclaimer-bar__text {
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: 12.5px;
     line-height: 1.6;
   }
   .disclaimer-bar__link {
+    flex: none;
     display: inline-block;
-    margin: 6px 0 0;
-    padding: 3px 10px;
-    min-height: 26px;
+    margin: 0;
+    padding: 9px 11px;
+    min-height: 40px;
     font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+/* 横屏手机：整条只能占 60px 左右，按钮再压一点（触控目标 34px 是这里的取舍） */
+@media (max-height: 480px) {
+  .disclaimer-bar {
+    padding: 6px calc(var(--pad) + var(--safe-right)) calc(6px + var(--safe-bottom))
+      calc(var(--pad) + var(--safe-left));
+  }
+  .disclaimer-bar__text {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .disclaimer-bar__link {
+    min-height: 34px;
+    padding: 7px 10px;
   }
 }
 </style>

@@ -51,6 +51,8 @@ describe('偏好持久化', () => {
   it('空存储时返回默认值', () => {
     expect(loadPrefs()).toEqual(DEFAULT_PREFS)
     expect(loadBest()).toEqual(DEFAULT_BEST)
+    // 移动端默认自动减弱特效
+    expect(DEFAULT_PREFS.mobileAutoReduce).toBe(true)
   })
 
   it('保存后可以读回', () => {
@@ -60,13 +62,23 @@ describe('偏好持久化', () => {
     expect(prefs.volume).toBe(0.25)
     expect(prefs.easyMode).toBe(true)
     expect(prefs.hintSeen).toBe(true)
+    expect(prefs.mobileAutoReduce).toBe(true)
   })
 
   it('音量被钳制到 0..1，类型非法的字段回落到默认值', () => {
-    storage.setItem('lets-rain:prefs:v1', JSON.stringify({ volume: 42, muted: 'yes' }))
+    storage.setItem(
+      'lets-rain:prefs:v1',
+      JSON.stringify({ volume: 42, muted: 'yes', mobileAutoReduce: 'no' }),
+    )
     const prefs = loadPrefs()
     expect(prefs.volume).toBe(1)
     expect(prefs.muted).toBe(DEFAULT_PREFS.muted)
+    expect(prefs.mobileAutoReduce).toBe(DEFAULT_PREFS.mobileAutoReduce)
+  })
+
+  it('用户可以关闭移动端自动减弱并持久化', () => {
+    savePrefs({ ...DEFAULT_PREFS, mobileAutoReduce: false })
+    expect(loadPrefs().mobileAutoReduce).toBe(false)
   })
 
   it('损坏的 JSON 不会抛错，直接回落默认值', () => {

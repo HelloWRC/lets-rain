@@ -9,6 +9,7 @@
  */
 
 import { computed, reactive, ref, type ComputedRef } from 'vue'
+import { device } from './device'
 import { Emitter } from './emitter'
 import { MAX_TICK_MS, gameLoop } from './loop'
 import { clamp } from './math'
@@ -94,6 +95,24 @@ export function createGameStore(options: GameStoreOptions = {}) {
   const runElapsedMs = computed(() => Math.max(0, state.clockMs - state.runStartedAt))
   const decayPerSecond = computed(() => stageAt(state.stageIndex).decayPerSec * (prefs.easyMode ? 0.8 : 1))
   const atFinalStage = computed(() => state.stageIndex === LAST_STAGE_INDEX)
+
+  /**
+   * 特效是否进入"减弱"档：三个来源取或 ——
+   *  1. 用户手动打开「减弱特效」；
+   *  2. 系统偏好 prefers-reduced-motion；
+   *  3. 触屏设备（手机/平板）自动减弱，可在移动端手动关掉，之后就不再自动接管。
+   * 注意这里用 isTouch 而不是 isMobile：桌面端把窗口拖窄不该被自动降级。
+   * 减弱后会：粒子大幅减少、关闭屏幕震动与频闪、闪光强度降低且限制频率、
+   * CSS 侧通过 .is-reduced-fx 停掉脉冲与快速旋转。
+   */
+  const effectsReduced = computed(
+    () => prefs.reduceFx || device.prefersReducedMotion || (device.isTouch && prefs.mobileAutoReduce),
+  )
+
+  /** 「减弱特效」当前是否由移动端自动接管（用于控制栏文案） */
+  const effectsAuto = computed(
+    () => !prefs.reduceFx && device.isTouch && prefs.mobileAutoReduce && !device.prefersReducedMotion,
+  )
 
   function persistBest(): void {
     if (persist) saveBest(best)
@@ -247,6 +266,24 @@ export function createGameStore(options: GameStoreOptions = {}) {
     if (persist) savePrefs(prefs)
   }
 
+  /**
+   * 切换「减弱特效」。移动端上这一步同时表示"我确认要自己决定"，
+   * 于是关闭自动接管（这样手机用户也能选择看完整特效）。
+   */
+  function toggleEffectsReduced(): void {
+    const next = !effectsReduced.value
+    prefs.reduceFx = next
+    if (device.isTouch) prefs.mobileAutoReduce = false
+    if (persist) savePrefs(prefs)
+  }
+
+  /** 恢复"跟随设备自动决定"。 */
+  function resetEffectsAuto(): void {
+    prefs.reduceFx = false
+    prefs.mobileAutoReduce = true
+    if (persist) savePrefs(prefs)
+  }
+
   /** 挂到全局 rAF 循环，返回解绑函数。 */
   function attachLoop(): () => void {
     if (detachLoop) return detachLoop
@@ -277,12 +314,16 @@ export function createGameStore(options: GameStoreOptions = {}) {
     runElapsedMs,
     decayPerSecond,
     atFinalStage,
+    effectsReduced,
+    effectsAuto,
     pushFeed,
     tick,
     click,
     reportMiss,
     reset,
     setPref,
+    toggleEffectsReduced,
+    resetEffectsAuto,
     attachLoop,
   }
 }

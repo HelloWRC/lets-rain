@@ -145,6 +145,8 @@ export interface Prefs {
   volume: number
   easyMode: boolean
   reduceFx: boolean
+  /** 在移动端（触屏/窄屏）自动减弱特效；用户手动切换过「减弱特效」后自动置为 false */
+  mobileAutoReduce: boolean
   hintSeen: boolean
 }
 
