@@ -2,6 +2,12 @@
  * 阶段数据表 —— 全项目唯一真源。
  * 顺序固定：晴天 → 多云 → 阴天 → 雨 → 暴雨 → 强对流。
  * 想调节难度或特效强度，只改这张表即可，不需要动任何逻辑。
+ *
+ * 难度曲线（当前值）：
+ *  - advanceGain 单次点击增益 0.15 → 0.095，约合"每阶段 7 → 11 次点击"，全程约 53 次；
+ *    增益降低后，闲置回落的相对压力也随之变大（增益/回落比从 4.4 降到 0.63）。
+ *    （连击升档 ×1.25/×1.5/×1.75 后，快手指需要的点击次数会明显减少。）
+ *  - wind.amp 风力幅值 7 → 100px，躲避强度 0 → 1.0，躲避反应时间 0.30 → 0.15s。
  */
 
 import type { StageDef } from './types'
@@ -18,7 +24,7 @@ export const STAGES: readonly StageDef[] = [
     name: '晴天',
     tagline: '万里无云，一点雨的意思都没有',
     hint: '点我求雨',
-    advanceGain: 0.22,
+    advanceGain: 0.15,
     decayPerSec: 0.05,
     graceMs: 250,
     palette: {
@@ -34,7 +40,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#1b4f7a',
       vignetteStrength: 0.05,
     },
-    wind: { amp: 4, freq: 0.45, dodge: 0, dodgeRadius: 2.2, dodgeLag: 0.32, jitter: 0.05 },
+    wind: { amp: 7, freq: 0.45, dodge: 0, dodgeRadius: 2.2, dodgeLag: 0.30, jitter: 0.06 },
     audio: {
       ambient: 'breeze',
       rainGain: 0,
@@ -74,7 +80,7 @@ export const STAGES: readonly StageDef[] = [
     name: '多云',
     tagline: '云层初聚，风开始有了主意',
     hint: '云在聚了！',
-    advanceGain: 0.2,
+    advanceGain: 0.135,
     decayPerSec: 0.07,
     graceMs: 250,
     palette: {
@@ -90,7 +96,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#2a4459',
       vignetteStrength: 0.12,
     },
-    wind: { amp: 12, freq: 0.5, dodge: 0, dodgeRadius: 2.2, dodgeLag: 0.32, jitter: 0.12 },
+    wind: { amp: 20, freq: 0.5, dodge: 0.15, dodgeRadius: 2.2, dodgeLag: 0.28, jitter: 0.15 },
     audio: {
       ambient: 'breeze',
       rainGain: 0,
@@ -130,7 +136,7 @@ export const STAGES: readonly StageDef[] = [
     name: '阴天',
     tagline: '乌云压顶，天光只剩下一条缝',
     hint: '再用力点！',
-    advanceGain: 0.19,
+    advanceGain: 0.125,
     decayPerSec: 0.09,
     graceMs: 250,
     palette: {
@@ -146,7 +152,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#1d2a35',
       vignetteStrength: 0.3,
     },
-    wind: { amp: 20, freq: 0.55, dodge: 0.35, dodgeRadius: 2.2, dodgeLag: 0.3, jitter: 0.2 },
+    wind: { amp: 34, freq: 0.55, dodge: 0.5, dodgeRadius: 2.3, dodgeLag: 0.25, jitter: 0.25 },
     audio: {
       ambient: 'drone',
       rainGain: 0,
@@ -187,7 +193,7 @@ export const STAGES: readonly StageDef[] = [
     name: '雨',
     tagline: '细雨落下，屋檐开始敲鼓',
     hint: '雨来了！继续！',
-    advanceGain: 0.17,
+    advanceGain: 0.115,
     decayPerSec: 0.11,
     graceMs: 260,
     palette: {
@@ -203,7 +209,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#101c26',
       vignetteStrength: 0.45,
     },
-    wind: { amp: 30, freq: 0.62, dodge: 0.6, dodgeRadius: 2.2, dodgeLag: 0.26, jitter: 0.3 },
+    wind: { amp: 52, freq: 0.62, dodge: 0.75, dodgeRadius: 2.4, dodgeLag: 0.21, jitter: 0.36 },
     audio: {
       ambient: 'rain',
       rainGain: 0.42,
@@ -243,7 +249,7 @@ export const STAGES: readonly StageDef[] = [
     name: '暴雨',
     tagline: '暴雨倾盆，雷声就在头顶炸开',
     hint: '别停！暴雨了！',
-    advanceGain: 0.15,
+    advanceGain: 0.105,
     decayPerSec: 0.13,
     graceMs: 270,
     palette: {
@@ -259,7 +265,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#05090d',
       vignetteStrength: 0.6,
     },
-    wind: { amp: 42, freq: 0.7, dodge: 0.85, dodgeRadius: 2.3, dodgeLag: 0.22, jitter: 0.42 },
+    wind: { amp: 72, freq: 0.7, dodge: 0.95, dodgeRadius: 2.5, dodgeLag: 0.18, jitter: 0.5 },
     audio: {
       ambient: 'downpour',
       rainGain: 0.72,
@@ -299,7 +305,7 @@ export const STAGES: readonly StageDef[] = [
     name: '强对流',
     tagline: '雷暴大风冰雹齐至，天在旋涡里发怒',
     hint: '抓住我！',
-    advanceGain: 0.13,
+    advanceGain: 0.095,
     decayPerSec: 0.15,
     graceMs: 280,
     palette: {
@@ -315,7 +321,7 @@ export const STAGES: readonly StageDef[] = [
       vignette: '#04030a',
       vignetteStrength: 0.72,
     },
-    wind: { amp: 60, freq: 0.8, dodge: 1, dodgeRadius: 2.4, dodgeLag: 0.18, jitter: 0.55 },
+    wind: { amp: 100, freq: 0.8, dodge: 1, dodgeRadius: 2.6, dodgeLag: 0.15, jitter: 0.62 },
     audio: {
       ambient: 'tempest',
       rainGain: 0.62,

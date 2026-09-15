@@ -9,6 +9,7 @@
 import { onMounted, ref } from 'vue'
 import { gameStore } from '../game/store'
 import { clearStorage } from '../game/prefs'
+import { REPO_LABEL, REPO_TEXT, REPO_URL } from '../game/site'
 
 const store = gameStore
 const emit = defineEmits<{ (event: 'close'): void }>()
@@ -74,6 +75,16 @@ function restart(): void {
           音效由 Web Audio API 合成（雨、风、雷、冰雹、警报、钟声都是滤波器 + 振荡器 + 噪声），
           没有任何图片或音频资源文件，也不加载任何外部资源。阶段数值集中在
           <code>src/game/stages.ts</code>，想调节难度改那张表即可。
+        </p>
+        <p class="note-body">
+          源码仓库：<a
+            class="note-link"
+            :href="REPO_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            :aria-label="REPO_LABEL"
+            >{{ REPO_TEXT }}</a
+          >
         </p>
       </section>
 
@@ -223,6 +234,24 @@ function restart(): void {
   color: var(--note-text);
   background: var(--note-surface-raised);
   border: 1px solid var(--note-border);
+}
+
+/* 仓库链接：用已验证的 --note-accent（对深底约 10:1） */
+.note-link {
+  color: var(--note-accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.note-link:hover {
+  color: color-mix(in srgb, var(--note-accent) 70%, #ffffff);
+}
+
+.note-link:focus-visible {
+  outline: 3px solid var(--note-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .note-list {

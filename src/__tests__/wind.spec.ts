@@ -28,11 +28,13 @@ function lcg(seed: number): () => number {
 describe('风场', () => {
   it('是连续函数：16ms 步进下的位移增量很小，不会瞬移', () => {
     for (const stage of STAGES) {
+      // 阈值随幅值缩放：风力幅值越大，同样的时间步长位移自然也越大
+      const limit = Math.max(8, stage.wind.amp * 0.14)
       let prev = windOffset(0, stage.wind, 0.5)
       for (let t = 1 / 60; t <= 8; t += 1 / 60) {
         const cur = windOffset(t, stage.wind, 0.5)
         const delta = Math.hypot(cur.x - prev.x, cur.y - prev.y)
-        expect(delta).toBeLessThan(8)
+        expect(delta).toBeLessThan(limit)
         prev = cur
       }
     }
@@ -113,16 +115,27 @@ describe('躲避指针', () => {
     expect(near.x).toBeGreaterThan(far.x)
   })
 
-  it('晴天与多云完全不躲，轻松模式强制关闭躲避', () => {
+  it('晴天完全不躲，但从多云起就会躲；轻松模式强制关闭躲避', () => {
     const input = {
       home: HOME,
       pointer: { x: HOME.x - 60, y: HOME.y },
       buttonSize: BUTTON,
       viewport: VIEWPORT,
     }
+    // 晴天 dodge = 0：新手阶段先感受风速
     expect(dodgeOffset({ ...input, profile: STAGES[0]!.wind })).toEqual({ x: 0, y: 0 })
-    expect(dodgeOffset({ ...input, profile: STAGES[1]!.wind })).toEqual({ x: 0, y: 0 })
+    // 多云开始就有躲避（难度提前介入）
+    expect(STAGES[1]!.wind.dodge).toBeGreaterThan(0)
+    expect(dodgeOffset({ ...input, profile: STAGES[1]!.wind }).x).toBeGreaterThan(0)
+    // 轻松模式彻底关掉躲避
     expect(dodgeOffset({ ...input, profile: SEVERE.wind, easyMode: true })).toEqual({ x: 0, y: 0 })
+  })
+
+  it('躲避强度随阶段单调不降，且最高阶段必定拉满', () => {
+    for (let i = 1; i < STAGES.length; i += 1) {
+      expect(STAGES[i]!.wind.dodge).toBeGreaterThanOrEqual(STAGES[i - 1]!.wind.dodge)
+    }
+    expect(STAGES[STAGES.length - 1]!.wind.dodge).toBe(1)
   })
 
   it('触屏降级：dodgeScale 按比例削弱躲避推力', () => {

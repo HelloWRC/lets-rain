@@ -59,4 +59,39 @@ describe('App 冒烟测试', () => {
 
     wrapper.unmount()
   })
+
+  it('页面底部的声明条里有指向仓库的 GitHub 链接', () => {
+    const wrapper = mount(App)
+    const link = wrapper.find('a.disclaimer-bar__github')
+
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('https://github.com/HelloWRC/lets-rain')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toContain('noopener')
+    expect(link.attributes('rel')).toContain('noreferrer')
+    expect(link.attributes('aria-label') ?? '').toContain('GitHub')
+    // 它必须挂在底部那条声明栏里
+    expect(wrapper.find('.disclaimer-bar a').attributes('href')).toBe(
+      'https://github.com/HelloWRC/lets-rain',
+    )
+
+    wrapper.unmount()
+  })
+
+  it('「关于」面板里也给出仓库链接', async () => {
+    const wrapper = mount(App)
+    gameStore.setPref('hintSeen', true)
+    await wrapper.vm.$nextTick()
+
+    const aboutButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('关于') || button.text().includes('说明'))
+    await aboutButton?.trigger('click')
+
+    const link = wrapper.find('a.note-link')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('https://github.com/HelloWRC/lets-rain')
+
+    wrapper.unmount()
+  })
 })

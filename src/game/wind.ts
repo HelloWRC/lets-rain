@@ -10,19 +10,53 @@
 import { clamp01, damp } from './math'
 import type { Size, Vec2, WindProfile } from './types'
 
-/** 相对视口的最大风场位移比例 */
-const MAX_DX_RATIO = 0.38
-const MAX_DY_RATIO = 0.3
+/** 相对视口的最大风场位移比例（调大 = 按钮能飘得更远，更难命中）。
+ *  纵向比例给得更大：竖屏手机上竖向空间远多于横向，横向会被安全区先钳住。 */
+const MAX_DX_RATIO = 0.44
+const MAX_DY_RATIO = 0.44
 /** 按钮与视口边缘的最小安全间距（px） */
-export const SAFE_PAD = 12
+export const SAFE_PAD = 10
 
 export interface Viewport {
   w: number
   h: number
 }
 
+/** 按钮可以活动的矩形区域（视口坐标）。用来避开顶部轨道与底部 HUD/控制栏，
+ *  否则位移一大，按钮就会钻到界面元素下面 —— 那里既看不见也点不到。 */
+export interface PlayBounds {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
 export function maxDisplacement(viewport: Viewport): Vec2 {
   return { x: viewport.w * MAX_DX_RATIO, y: viewport.h * MAX_DY_RATIO }
+}
+
+/** 由视口推出默认活动区域（整屏内缩一个安全边距） */
+export function boundsFromViewport(viewport: Viewport, pad = SAFE_PAD): PlayBounds {
+  return { left: pad, top: pad, right: viewport.w - pad, bottom: viewport.h - pad }
+}
+
+function boundsSize(bounds: PlayBounds): Viewport {
+  return {
+    w: Math.max(0, bounds.right - bounds.left),
+    h: Math.max(0, bounds.bottom - bounds.top),
+  }
+}
+
+/** 把按钮中心夹进活动区域（按钮整体始终留在区域内，区域过小时居中） */
+export function clampCenterToBounds(center: Vec2, size: Size, bounds: PlayBounds): Vec2 {
+  const minX = bounds.left + size.w / 2
+  const maxX = bounds.right - size.w / 2
+  const minY = bounds.top + size.h / 2
+  const maxY = bounds.bottom - size.h / 2
+  return {
+    x: minX > maxX ? (bounds.left + bounds.right) / 2 : Math.min(Math.max(center.x, minX), maxX),
+    y: minY > maxY ? (bounds.top + bounds.bottom) / 2 : Math.min(Math.max(center.y, minY), maxY),
+  }
 }
 
 /** 椭圆形幅度钳制：|x/maxX|² + |y/maxY|² 不超过 1。 */
@@ -41,14 +75,7 @@ export function clampCenterToSafeArea(
   viewport: Viewport,
   pad = SAFE_PAD,
 ): Vec2 {
-  const minX = pad + size.w / 2
-  const maxX = viewport.w - pad - size.w / 2
-  const minY = pad + size.h / 2
-  const maxY = viewport.h - pad - size.h / 2
-  return {
-    x: minX > maxX ? viewport.w / 2 : Math.min(Math.max(center.x, minX), maxX),
-    y: minY > maxY ? viewport.h / 2 : Math.min(Math.max(center.y, minY), maxY),
-  }
+  return clampCenterToBounds(center, size, boundsFromViewport(viewport, pad))
 }
 
 /**
@@ -64,8 +91,9 @@ export function windOffset(time: number, profile: WindProfile, intensity = 0, am
     0.55 * Math.sin(f * t) + 0.3 * Math.sin(1.7 * f * t + 1.3) + 0.15 * Math.sin(2.9 * f * t + 2.1)
   const turb =
     profile.jitter * (0.22 * Math.sin(6.1 * f * t + 0.7) + 0.14 * Math.sin(9.7 * f * t + 2.9))
+  // 纵向分量：竖屏手机上竖向可用空间远大于横向，加大它才真正提高"飘得远"的观感与难度
   const vertical =
-    0.42 * (0.62 * Math.sin(0.77 * f * t + 2.4) + 0.38 * Math.sin(1.9 * f * t + 0.4)) * (0.75 + 0.5 * k)
+    0.6 * (0.62 * Math.sin(0.77 * f * t + 2.4) + 0.38 * Math.sin(1.9 * f * t + 0.4)) * (0.75 + 0.5 * k)
   return { x: amp * (base + turb), y: amp * vertical }
 }
 
@@ -98,10 +126,14 @@ export function dodgeOffset(input: DodgeInput): Vec2 {
   if (radius <= 0 || dist > radius || dist < 1e-3) return { x: 0, y: 0 }
 
   const push = Math.pow(1 - dist / radius, 1.4)
+  // 椭圆 reach：横竖各自按自己的可用范围取 62%。
+  // 之前用 min(横向, 纵向) 会让竖屏手机（横向空间小）连纵向躲避也一起被压小，
+  // 白白浪费了竖向那大片空间。
   const limit = maxDisplacement(viewport)
-  const reach = Math.min(limit.x, limit.y) * 0.62
-  const amount = reach * strength * push
-  return { x: (dx / dist) * amount, y: (dy / dist) * amount }
+  const reachX = limit.x * 0.62
+  const reachY = limit.y * 0.62
+  const amount = strength * push
+  return { x: (dx / dist) * reachX * amount, y: (dy / dist) * reachY * amount }
 }
 
 export interface DriftConfig {
@@ -113,8 +145,11 @@ export interface DriftConfig {
   /** 阶段内进度 0..1 */
   intensity: number
   easyMode: boolean
-  /** 躲避强度缩放，默认 1（触屏用 0.55） */
+  /** 躲避强度缩放，默认 1（触屏用 0.85） */
   dodgeScale?: number
+  /** 活动区域；不传则默认整屏内缩安全边距。传入"去掉顶部轨道与底部 HUD 之后"的区域，
+   *  按钮就不会飘到界面元素下面去（那里既看不见也点不到）。 */
+  bounds?: PlayBounds
 }
 
 /** 有状态的按钮漂移器：风场 + 带滞后平滑的躲避，输出已钳制的最终位移。 */
@@ -131,6 +166,9 @@ export class ButtonDrift {
 
   /** 推进一帧，返回按钮相对 home 的位移（原地复用同一个对象）。 */
   update(dt: number, time: number, cfg: DriftConfig, pointer: Vec2 | null): Vec2 {
+    const bounds = cfg.bounds ?? boundsFromViewport(cfg.viewport)
+    const playSize = boundsSize(bounds)
+
     const wind = windOffset(time, cfg.profile, cfg.intensity, cfg.easyMode ? 0.5 : 1)
     const target = dodgeOffset({
       home: cfg.home,
@@ -145,14 +183,15 @@ export class ButtonDrift {
     this.smoothedDodge.x = damp(this.smoothedDodge.x, target.x, 1 / lag, dt)
     this.smoothedDodge.y = damp(this.smoothedDodge.y, target.y, 1 / lag, dt)
 
+    // 幅度上限按"活动区域"折算：区域小，允许的摆动也按比例小
     const bounded = clampDisplacement(
       { x: wind.x + this.smoothedDodge.x, y: wind.y + this.smoothedDodge.y },
-      cfg.viewport,
+      playSize,
     )
-    const center = clampCenterToSafeArea(
+    const center = clampCenterToBounds(
       { x: cfg.home.x + bounded.x, y: cfg.home.y + bounded.y },
       cfg.buttonSize,
-      cfg.viewport,
+      bounds,
     )
     this.offset.x = center.x - cfg.home.x
     this.offset.y = center.y - cfg.home.y

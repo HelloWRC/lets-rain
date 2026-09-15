@@ -66,25 +66,46 @@ describe('阶段推进', () => {
   it('进度溢出时进入下一阶段，余量结转且不超过 CARRY_MAX', () => {
     const store = makeStore()
     const gain = STAGES[0]!.advanceGain
-    for (let i = 0; i < 4; i += 1) store.click()
+    // 数据表必须保证"首个阶段所需点击数 ≤ 8"，否则连击倍率会介入，本用例的算术不再成立
+    const clicksNeeded = Math.ceil(1 / gain)
+    expect(clicksNeeded).toBeLessThanOrEqual(8)
+
+    for (let i = 1; i < clicksNeeded; i += 1) store.click()
     expect(store.state.stageIndex).toBe(0)
-    expect(store.state.stageProgress).toBeCloseTo(gain * 4, 6)
+    expect(store.state.stageProgress).toBeCloseTo(gain * (clicksNeeded - 1), 6)
 
     store.click()
     expect(store.state.stageIndex).toBe(1)
     expect(store.stage.value.name).toBe('多云')
-    expect(store.state.stageProgress).toBeCloseTo(gain * 5 - 1, 6)
+    expect(store.state.stageProgress).toBeCloseTo(gain * clicksNeeded - 1, 6)
     expect(store.state.stageProgress).toBeLessThanOrEqual(CARRY_MAX)
+  })
+
+  it('难度下限：单个阶段至少需要 5 次点击，全程至少 45 次，且任何一次点击都点不满一段', () => {
+    for (const stage of STAGES) {
+      expect(stage.advanceGain).toBeLessThanOrEqual(0.2)
+      // 即使满连击倍率（×1.75）也不可能一次点满一个阶段
+      expect(stage.advanceGain * 1.75).toBeLessThan(1)
+    }
+    const totalClicks = STAGES.reduce((sum, stage) => sum + Math.ceil(1 / stage.advanceGain), 0)
+    expect(totalClicks).toBeGreaterThanOrEqual(45)
   })
 
   it('一次溢出不会跨过整个阶段（余量被钳制）', () => {
     const store = makeStore()
-    store.state.stageProgress = 0.99
-    store.state.combo = 100 // 倍率 1.75
-    const outcome = store.click()
-    expect(outcome.multiplier).toBe(1.75)
-    expect(store.state.stageIndex).toBe(1)
-    expect(store.state.stageProgress).toBeCloseTo(CARRY_MAX, 9)
+    // 直接注入一个"巨大增益"制造极端溢出，避免用例依赖数据表里的具体数值
+    const stage0 = STAGES[0] as { advanceGain: number }
+    const original = stage0.advanceGain
+    try {
+      stage0.advanceGain = 2
+      store.state.stageProgress = 0.9
+      const outcome = store.click()
+      expect(outcome.gained).toBeGreaterThan(1)
+      expect(store.state.stageIndex).toBe(1)
+      expect(store.state.stageProgress).toBeCloseTo(CARRY_MAX, 9)
+    } finally {
+      stage0.advanceGain = original
+    }
   })
 
   it('阶段只能按 晴天→多云→阴天→雨→暴雨→强对流 逐级推进', () => {
@@ -227,9 +248,11 @@ describe('重置与事件', () => {
     store.events.on('click', (event) => clickStages.push(event.stageIndex))
     store.events.on('advance', (event) => advanced.push(event.to))
 
-    for (let i = 0; i < 5; i += 1) store.click(10, 20)
+    // 点满第一个阶段（点击数由数据表决定，不写死）
+    const clicksNeeded = Math.ceil(1 / STAGES[0]!.advanceGain) + 2
+    for (let i = 0; i < clicksNeeded; i += 1) store.click(10, 20)
 
-    expect(clickStages).toHaveLength(5)
+    expect(clickStages).toHaveLength(clicksNeeded)
     expect(advanced).toEqual([1])
     expect(store.feed.value.some((item) => item.kind === 'stage')).toBe(true)
     expect(store.feed.value.at(-1)?.text).toContain('多云')

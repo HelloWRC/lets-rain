@@ -14,10 +14,12 @@ import { device } from '../game/device'
 import { clamp01 } from '../game/math'
 import { pulseFlash, pulseShake, runtime } from '../game/runtime'
 import { gameStore } from '../game/store'
-import { ButtonDrift } from '../game/wind'
+import { ButtonDrift, SAFE_PAD, type PlayBounds } from '../game/wind'
 
-/** 触屏上把躲避强度降到 55%：手指没有 hover，追一颗逃跑的按钮只会让人放弃 */
-const TOUCH_DODGE_SCALE = 0.55
+/** 触屏设备的躲避强度系数。
+ *  手指没有 hover，理论上该比鼠标宽容；但移动端是这次要"增加挑战性"的主战场，
+ *  所以只留 15% 的让步（真的想放水可以用「轻松模式」彻底关掉躲避）。 */
+const TOUCH_DODGE_SCALE = 0.85
 
 interface Ripple {
   id: number
@@ -35,10 +37,69 @@ const drift = new ButtonDrift()
 const home = { x: 0, y: 0 }
 const buttonSize = { w: 0, h: 0 }
 const viewport = { w: 0, h: 0 }
+/** 按钮可以飘动的区域（避开顶部轨道与底部的数据条/控制栏/播报/结算卡片） */
+const bounds: PlayBounds = { left: 0, top: 0, right: 0, bottom: 0 }
 
 let rippleSeq = 0
 let lastKeyHitAt = 0
 let offReset: (() => void) | null = null
+let boundsClock = 0
+
+/** 读取 safe-area 内边距（拿不到就当 0） */
+function safeInset(side: 'top' | 'right' | 'bottom' | 'left'): number {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(`--safe-${side}`)
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+/**
+ * 计算按钮的活动区域：把顶部轨道、底部数据条/控制栏、左右两侧面板都排除掉。
+ * 分方位处理很关键 —— 桌面的数据面板在左侧，如果拿它的 top 当"底部边界"，
+ * 整个活动区会被压成一条缝，按钮会贴在屏幕顶部压住阶段轨道。
+ * 只考虑"会拦截点击"的元素（播报条是 pointer-events:none，不参与计算）。
+ */
+function measureBounds(): void {
+  if (typeof window === 'undefined') return
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  let top = SAFE_PAD + safeInset('top')
+  let bottom = vh - SAFE_PAD - safeInset('bottom')
+  let left = SAFE_PAD + safeInset('left')
+  let right = vw - SAFE_PAD - safeInset('right')
+
+  const consider = (selector: string): void => {
+    const el = document.querySelector(selector)
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (rect.height <= 0 || rect.width <= 0) return
+    const centerX = (rect.left + rect.right) / 2
+    const nearTop = rect.bottom <= vh * 0.45
+    const nearBottom = rect.top >= vh * 0.55
+    if (nearTop) {
+      // 顶部：只有横跨中间的元素（阶段轨道）才真正压住按钮的活动区
+      if (centerX > vw * 0.25 && centerX < vw * 0.75) top = Math.max(top, rect.bottom + 6)
+    } else if (nearBottom) {
+      bottom = Math.min(bottom, rect.top - 6)
+    } else if (centerX < vw * 0.5) {
+      // 左侧竖排面板（桌面的数据卡片）
+      left = Math.max(left, rect.right + 6)
+    } else {
+      right = Math.min(right, rect.left - 6)
+    }
+  }
+
+  consider('.track')
+  consider('.hud')
+  consider('.hud__cards')
+  consider('.controls')
+  consider('.celebration__card')
+
+  // 活动区太窄时给一个下限，避免出现退化区域
+  bounds.top = Math.min(top, Math.max(SAFE_PAD, bottom - 80))
+  bounds.bottom = Math.max(bottom, bounds.top + 80)
+  bounds.left = Math.min(left, Math.max(SAFE_PAD, right - 80))
+  bounds.right = Math.max(right, bounds.left + 80)
+}
 
 function measure(): void {
   if (typeof window === 'undefined') return
@@ -57,6 +118,7 @@ function measure(): void {
     buttonSize.w = rect.width
     buttonSize.h = rect.height
   }
+  measureBounds()
 }
 
 function addRipple(x: number, y: number): void {
@@ -134,6 +196,12 @@ function onWindowPointerDown(event: PointerEvent): void {
 useGameTick((dtMs) => {
   const dt = Math.min(dtMs, 100) / 1000
   const stage = store.stage.value
+  // 界面布局会变（数据条展开、结算卡片出现、响应式断点），定期重算活动区域
+  boundsClock += dtMs
+  if (boundsClock >= 400) {
+    boundsClock = 0
+    measureBounds()
+  }
   const offset = drift.update(
     dt,
     runtime.time,
@@ -141,6 +209,7 @@ useGameTick((dtMs) => {
       home,
       buttonSize,
       viewport,
+      bounds,
       profile: stage.wind,
       intensity: runtime.intensity,
       // 躲避只跟"轻松模式"绑定，不再跟"减弱特效"绑定：减弱特效是视觉偏好，不该改难度

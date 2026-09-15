@@ -222,7 +222,9 @@ function spawn(dt: number): void {
 function update(dt: number): void {
   const { w, h, groundY } = size
   const stage = gameStore.stage.value
-  const wind = windOffset(runtime.time, stage.wind, runtime.intensity, runtime.reduced ? 0.5 : 1)
+  // 与按钮使用同一套风场参数（不再按档位减半）：玩家看到的雨丝/落叶方向与力度，
+  // 必须和按钮被吹动的方向一致，否则"风"就没有说服力。
+  const wind = windOffset(runtime.time, stage.wind, runtime.intensity, 1)
   runtime.wind.x = wind.x
   runtime.wind.y = wind.y
 
